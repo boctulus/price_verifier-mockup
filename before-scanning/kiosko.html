@@ -126,34 +126,10 @@
       width: 90px;
       height: 58px;
       border-radius: 7px;
-      border: 2px solid rgba(0,0,0,0.12);
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      background: linear-gradient(135deg, #e91e63 0%, #3f51b5 55%, #ffc107 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-end;
-      padding: 5px 7px;
-      position: relative;
+      object-fit: contain;
     }
 
-    .card-chip {
-      position: absolute;
-      top: 10px; left: 10px;
-      width: 20px; height: 14px;
-      border-radius: 3px;
-      background: linear-gradient(135deg, #ffe082, #ffb300);
-      border: 1px solid rgba(0,0,0,0.15);
-    }
-
-    .card-logo {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 900;
-      font-size: 0.55rem;
-      color: white;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-      letter-spacing: 0.02em;
-    }
 
     /* ───────── Footer rojo ───────── */
     .screen-footer {
@@ -224,10 +200,7 @@
 
       <!-- Tarjeta eCuenta: flota en el ángulo derecho -->
       <div class="ecuenta-card-wrap">
-        <div class="card-placeholder">
-          <div class="card-chip"></div>
-          <span class="card-logo">eCuenta</span>
-        </div>
+        <img src="../assets/img/ecuenta-card.png" class="card-placeholder" alt="eCuenta Card"/>
       </div>
 
     </div>
@@ -235,14 +208,7 @@
     <div class="screen-footer">
       <span class="footer-tagline">Precios baratos siempre</span>
       <div class="footer-logo-wrap">
-        <svg class="footer-logo-svg" viewBox="0 0 200 52" xmlns="http://www.w3.org/2000/svg">
-          <text x="2" y="14" font-family="Nunito, sans-serif" font-weight="800"
-                font-size="10" fill="rgba(255,255,255,0.85)" letter-spacing="0.3">SuperBodega</text>
-          <text x="2" y="48" font-family="Nunito, sans-serif" font-weight="900"
-                font-style="italic" font-size="38" fill="white" letter-spacing="-0.5">aCuenta</text>
-          <path d="M 2 51 Q 100 58 198 50" stroke="white" stroke-width="1.8"
-                fill="none" stroke-linecap="round" opacity="0.7"/>
-        </svg>
+        <img src="../assets/img/logo2.svg" class="footer-logo-svg" alt="Logo"/>
       </div>
     </div>
 
