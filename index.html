@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verificador de Precios</title>
+
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,700;0,800;0,900;1,900&family=Barlow+Condensed:wght@700;800;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ══════════════════════════════════════
+       Variables
+    ══════════════════════════════════════ */
+    :root {
+      --red-dark:    #b71c1c;
+      --red-main:    #c62828;
+      --red-mid:     #e53935;
+      --red-light:   #ef5350;
+      --red-footer:  #c0392b;
+      --red-price:   #c62828;
+      --screen-bg:   #f0f0f0;
+      --screen-light:#e8e8e8;
+      --text-red:    #c0392b;
+      --text-gray:   #444;
+      --text-dark:   #1a1a1a;
+      --white:       #ffffff;
+      --gold:        #f9c12e;
+      --gold-dark:   #e5a800;
+
+      --tablet-w: 640px;
+      --tablet-h: 400px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #6d1a0f radial-gradient(ellipse at 55% 40%, #c0392b 0%, #5a120a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Roboto', sans-serif;
+      padding: 2rem 1rem;
+      gap: 14px;
+    }
+
+    /* ══════════════════════════════════════
+       Pantalla LCD — único elemento visible
+    ══════════════════════════════════════ */
+    .lcd-screen {
+      width: var(--tablet-w);
+      height: var(--tablet-h);
+      background: var(--screen-bg);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow:
+        inset 0 0 20px rgba(0,0,0,0.2),
+        0 8px 32px rgba(0,0,0,0.55),
+        0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Reflejo pantalla */
+    .lcd-screen::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 40%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.11), transparent);
+      pointer-events: none;
+      z-index: 20;
+      border-radius: 14px 14px 0 0;
+    }
+
+    /* ══════════════════════════════════════
+       VIEW SWITCHING
+    ══════════════════════════════════════ */
+    .screen-view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+    }
+    .screen-view.active {
+      display: flex;
+    }
+
+    /* ══════════════════════════════════════
+       VIEW A — Before scanning
+    ══════════════════════════════════════ */
+    .view-before .screen-top {
+      background: #fce4ec;
+      padding: 28px 24px 10px 24px;
+      text-align: center;
+    }
+
+    .instruction-text {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.1rem, 3vw, 1.55rem);
+      color: var(--text-red);
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      margin-bottom: 18px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    /* Área del código de barras + tarjeta */
+    .barcode-area {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;        /* card hugs the right */
+      padding: 0 24px 18px 24px;
+      position: relative;
+      background: #fce4ec;
+    }
+
+    /* Barcode: absolute, spans full area, always centered */
+    .barcode-svg-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .barcode-svg-wrap img,
+    .barcode-svg-wrap svg {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+    }
+
+    /* Mini tarjeta eCuenta */
+    .ecuenta-card-wrap {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-placeholder {
+      width: 90px;
+      height: 58px;
+      border-radius: 7px;
+      border: 2px solid rgba(0,0,0,0.12);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      background: linear-gradient(135deg, #e91e63 0%, #3f51b5 55%, #ffc107 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 5px 7px;
+      position: relative;
+    }
+
+    .card-chip {
+      position: absolute;
+      top: 10px; left: 10px;
+      width: 20px; height: 14px;
+      border-radius: 3px;
+      background: linear-gradient(135deg, #ffe082, #ffb300);
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    .card-logo {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 0.55rem;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      letter-spacing: 0.02em;
+    }
+
+    /* ══════════════════════════════════════
+       VIEW B — After scanning (precio)
+    ══════════════════════════════════════ */
+    .view-after .screen-main {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      background: var(--screen-bg);
+    }
+
+    /* Columna izquierda: logo */
+    .col-logo {
+      width: 42%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px 18px;
+      border-right: 2px solid #d8d8d8;
+      background: var(--screen-light);
+    }
+
+    .acuenta-logo-svg { width: 210px; height: auto; }
+
+    /* Columna derecha: precio */
+    .col-price {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 20px 10px 20px;
+      gap: 8px;
+    }
+
+    /* Badge COMPARA Y AHORRA */
+    .badge-compara {
+      background: var(--gold);
+      border: 2.5px solid var(--gold-dark);
+      border-radius: 6px;
+      padding: 3px 14px 4px 14px;
+      display: inline-block;
+      line-height: 1.1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+
+    .badge-compara .line1,
+    .badge-compara .line2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-size: 1rem;
+      color: #7b0000;
+      letter-spacing: 0.06em;
+      display: block;
+      text-transform: uppercase;
+      line-height: 1.15;
+    }
+
+    /* Precio principal */
+    .price-badge {
+      background: var(--red-price);
+      border-radius: 8px;
+      padding: 6px 18px 8px 14px;
+      width: 100%;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .price-text {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-size: 3.2rem;
+      color: var(--white);
+      line-height: 1;
+      letter-spacing: -0.01em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      white-space: nowrap;
+    }
+
+    .price-info { width: 100%; text-align: center; line-height: 1.5; }
+
+    .price-info .normal {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      color: var(--text-gray);
+      text-transform: uppercase;
+    }
+
+    .price-info .ahorro {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.72rem;
+      color: var(--text-red);
+      text-transform: uppercase;
+    }
+
+    .price-info .producto {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.7rem;
+      color: var(--text-gray);
+      text-transform: uppercase;
+    }
+
+    /* ══════════════════════════════════════
+       Footer rojo (compartido)
+    ══════════════════════════════════════ */
+    .screen-footer {
+      height: 58px;
+      background: var(--red-footer);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      flex-shrink: 0;
+      background-image:
+        repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 8px,
+          rgba(255,255,255,0.04) 8px,
+          rgba(255,255,255,0.04) 9px
+        ),
+        linear-gradient(to right, #c0392b, #a93226);
+    }
+
+    .footer-tagline {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-style: italic;
+      font-size: 1.25rem;
+      color: var(--white);
+      letter-spacing: -0.01em;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      white-space: nowrap;
+    }
+
+    .footer-logo-wrap {
+      background: rgba(0,0,0,0.18);
+      border-radius: 8px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-logo-svg { width: 110px; height: auto; }
+
+    /* ══════════════════════════════════════
+       Hint de teclado
+    ══════════════════════════════════════ */
+    .kbd-hint {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.02em;
+      user-select: none;
+    }
+
+    /* ══════════════════════════════════════
+       Responsive
+    ══════════════════════════════════════ */
+    @media (max-width: 700px) {
+      :root { --tablet-w: calc(100vw - 32px); --tablet-h: auto; }
+      .lcd-screen { height: auto; }
+      .view-after .screen-main { flex-direction: column; }
+      .col-logo { width: 100%; border-right: none; border-bottom: 2px solid #d8d8d8; }
+      .price-text { font-size: 2.4rem; }
+      .instruction-text { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════
+       LCD SCREEN — única carcasa visible
+  ═══════════════════════════════════ -->
+  <div class="lcd-screen">
+
+    <!-- ╔══════════════════════════════╗ -->
+    <!-- ║  VIEW A — Before scanning   ║ -->
+    <!-- ╚══════════════════════════════╝ -->
+    <div class="screen-view view-before active" id="view-before">
+
+      <div class="screen-top">
+        <p class="instruction-text">
+          Escanea el código de barras de tu producto
+        </p>
+      </div>
+
+      <div class="barcode-area">
+
+        <!-- Código de barras: centrado absolutamente sobre toda el área -->
+        <div class="barcode-svg-wrap">
+          <img src="./before-scanning/barcode.svg" alt="Código de barras"/>
+        </div>
+
+        <!-- Tarjeta eCuenta: flota en el ángulo derecho -->
+        <div class="ecuenta-card-wrap">
+          <div class="card-placeholder">
+            <div class="card-chip"></div>
+            <span class="card-logo">eCuenta</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="screen-footer">
+        <span class="footer-tagline">Precios baratos siempre</span>
+        <div class="footer-logo-wrap">
+          <svg class="footer-logo-svg" viewBox="0 0 200 52" xmlns="http://www.w3.org/2000/svg">
+            <text x="2" y="14" font-family="Nunito, sans-serif" font-weight="800"
+                  font-size="10" fill="rgba(255,255,255,0.85)" letter-spacing="0.3">SuperBodega</text>
+            <text x="2" y="48" font-family="Nunito, sans-serif" font-weight="900"
+                  font-style="italic" font-size="38" fill="white" letter-spacing="-0.5">aCuenta</text>
+            <path d="M 2 51 Q 100 58 198 50" stroke="white" stroke-width="1.8"
+                  fill="none" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+        </div>
+      </div>
+
+    </div><!-- /view-before -->
+
+
+    <!-- ╔══════════════════════════════╗ -->
+    <!-- ║  VIEW B — After scanning    ║ -->
+    <!-- ╚══════════════════════════════╝ -->
+    <div class="screen-view view-after" id="view-after">
+
+      <div class="screen-main">
+
+        <!-- Columna Logo -->
+        <div class="col-logo">
+          <svg class="acuenta-logo-svg" viewBox="0 0 280 120" xmlns="http://www.w3.org/2000/svg">
+            <text x="88" y="32" font-family="Nunito, sans-serif" font-weight="800"
+                  font-size="18" fill="#c0392b" letter-spacing="0.5">SuperBodega</text>
+            <text x="14" y="105" font-family="Nunito, sans-serif" font-weight="900"
+                  font-style="italic" font-size="96" fill="#c0392b">a</text>
+            <text x="88" y="100" font-family="Nunito, sans-serif" font-weight="900"
+                  font-style="italic" font-size="58" fill="#c0392b" letter-spacing="-1">Cuenta</text>
+            <path d="M 14 112 Q 150 130 270 108" stroke="#c0392b" stroke-width="3"
+                  fill="none" stroke-linecap="round"/>
+            <text x="258" y="106" font-family="Nunito, sans-serif" font-weight="700"
+                  font-size="13" fill="#c0392b">®</text>
+          </svg>
+        </div>
+
+        <!-- Columna Precio -->
+        <div class="col-price">
+
+          <div class="badge-compara">
+            <span class="line1">COMPARA</span>
+            <span class="line2">Y AHORRA</span>
+          </div>
+
+          <div class="price-badge">
+            <span class="price-text">3x$1.790</span>
+          </div>
+
+          <div class="price-info">
+            <div class="normal">PRECIO NORMAL: $ 820</div>
+            <div class="ahorro">AHORRO: $ 670</div>
+            <div class="producto">OREO REG</div>
+          </div>
+
+        </div>
+      </div><!-- /screen-main -->
+
+      <!-- Footer -->
+      <div class="screen-footer">
+        <span class="footer-tagline">Precios baratos siempre</span>
+        <div class="footer-logo-wrap">
+          <svg class="footer-logo-svg" viewBox="0 0 200 52" xmlns="http://www.w3.org/2000/svg">
+            <text x="2" y="14" font-family="Nunito, sans-serif" font-weight="800"
+                  font-size="10" fill="rgba(255,255,255,0.85)" letter-spacing="0.3">SuperBodega</text>
+            <text x="2" y="48" font-family="Nunito, sans-serif" font-weight="900"
+                  font-style="italic" font-size="38" fill="white" letter-spacing="-0.5">aCuenta</text>
+            <path d="M 2 51 Q 100 58 198 50" stroke="white" stroke-width="1.8"
+                  fill="none" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+        </div>
+      </div>
+
+    </div><!-- /view-after -->
+
+  </div><!-- /lcd-screen -->
+
+  <span class="kbd-hint">↵ Enter — alternar vista</span>
+
+  <script>
+    const viewBefore = document.getElementById('view-before');
+    const viewAfter  = document.getElementById('view-after');
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const beforeActive = viewBefore.classList.contains('active');
+      viewBefore.classList.toggle('active', !beforeActive);
+      viewAfter.classList.toggle('active',  beforeActive);
+    });
+  </script>
+
+</body>
+</html>
